@@ -6,6 +6,7 @@ let localPlayer: alt.Player;
 let currentRange: number;
 let showRangeTimer: number;
 let talkingState: boolean;
+let everyTickHandler: number | null = null;
 let interval;
 
 export function useVoiceClient() {
@@ -81,4 +82,45 @@ export function useVoiceClient() {
                 return 0; // Kein Kreis, wenn stumm geschaltet
         }
     }
+
+   function onGameEntityCreate() {
+        if(!(entity instanceof alt.Player)) return;
+        updateEveryTickHandler();
+   }
+
+   function onGameEntityDestroy() {
+        if(!(entity instanceof alt.Player)) return;
+        updateEveryTickHandler();
+   }
+        
+   function updateEveryTickHandler() {
+       if (alt.Player.streamedIn.length > 0 && !everyTickHandler) {
+           everyTickHandler = alt.everyTick(processPlayerFilters);
+       } else if (alt.Player.streamedIn.length === 0 && everyTickHandler) {
+           alt.clearEveryTick(everyTickHandler);
+           everyTickHandler = null;
+       }
+   }
+
+   function processPlayerFilters() {
+        alt.Player.streamedIn.forEach((entity) => {
+            const localPlayerRoomKey = game.getRoomKeyFromEntity(alt.Player.local.scriptId);
+            const streamedPlayerRoomKey = game.getRoomKeyFromEntity(entity.scriptId);
+
+            if (localPlayerRoomKey !== streamedPlayerRoomKey) {
+                entity.filter = muffleFilter;
+                continue;
+            }
+            entity.filter = null;
+        });
+   }
 }
+
+const muffleFilter = new alt.AudioFilter('muffleFilter');
+carExteriorFilter.addBqfEffect(0, 1000, -6, 1, 0, 0, 1);
+carExteriorFilter.addBqfEffect(2, 100, 6, 1, 0, 0, 2);
+carExteriorFilter.addDistortionEffect(0.2, -0.8, -0.2, 0, 0.7, 3);
+carExteriorFilter.addVolumeEffect(0.6, 4);
+
+alt.on('gameEntityCreate', onGameEntityCreate);
+alt.on('gameEntityDestroy', onGameEntityDestroy);
