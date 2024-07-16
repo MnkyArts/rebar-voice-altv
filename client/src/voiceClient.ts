@@ -104,8 +104,8 @@ export function useVoiceClient() {
 
    function processPlayerFilters() {
         alt.Player.streamedIn.forEach((entity) => {
-            const localPlayerRoomKey = game.getRoomKeyFromEntity(alt.Player.local.scriptId);
-            const streamedPlayerRoomKey = game.getRoomKeyFromEntity(entity.scriptId);
+            const localPlayerRoomKey = game.getRoomKeyFromEntity(alt.Player.local.scriptID);
+            const streamedPlayerRoomKey = game.getRoomKeyFromEntity(entity.scriptID);
 
             if (localPlayerRoomKey !== streamedPlayerRoomKey) {
                 entity.filter = muffleFilter;
