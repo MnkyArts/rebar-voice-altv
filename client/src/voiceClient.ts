@@ -51,7 +51,7 @@ export function useVoiceClient() {
 
         const interval = alt.setInterval(() => {
             if (new Date().getTime() > endTime) {
-                alt.clearEveryTick(interval);
+                alt.clearInterval(interval);
             } else {
                 drawVoiceRange(range);
             }
