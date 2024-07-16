@@ -7,23 +7,24 @@ let currentRange: number;
 let showRangeTimer: number;
 let talkingState: boolean;
 let everyTickHandler: number | null = null;
-let interval;
+let interval: number | null = null;
 
 export function useVoiceClient() {
-        localPlayer = alt.Player.local;
-        talkingState = false;
-        currentRange = 0;
-        showRangeTimer = null;
-        registerEvents();
+    localPlayer = alt.Player.local;
+    talkingState = false;
+    currentRange = 0;
+    showRangeTimer = null;
+    registerEvents();
 
-        function registerEvents() {
-        alt.on('keydown', key => {
-            if (key === 220) { // ^ - Taste
+    function registerEvents() {
+        alt.on('keydown', (key) => {
+            if (key === 220) {
+                // ^ - Taste
                 alt.emitServer(VoiceSystemEvents.ToServer.ChangeVoiceRange);
             }
         });
 
-        alt.onServer(VoiceSystemEvents.ToClient.UpdateVoiceRange, range => {
+        alt.onServer(VoiceSystemEvents.ToClient.UpdateVoiceRange, (range) => {
             currentRange = range;
             showVoiceRange();
         });
@@ -62,7 +63,32 @@ export function useVoiceClient() {
     function drawVoiceRange(range) {
         if (range > 0) {
             const { x, y, z } = localPlayer.pos;
-            game.drawMarker(1, x, y, z - 0.8, 0, 0, 0, 0, 0, 0, range * 2, range * 2, 1, 96, 165, 250, 100, false, true, 2, false, null, null, false);
+            game.drawMarker(
+                1,
+                x,
+                y,
+                z - 0.8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                range * 2,
+                range * 2,
+                1,
+                96,
+                165,
+                250,
+                100,
+                false,
+                true,
+                2,
+                false,
+                null,
+                null,
+                false,
+            );
         }
     }
 
@@ -83,44 +109,51 @@ export function useVoiceClient() {
         }
     }
 
-   function onGameEntityCreate() {
-        if(!(entity instanceof alt.Player)) return;
+    function onGameEntityCreate(entity: alt.Entity) {
+        if (!(entity instanceof alt.Player)) return;
         updateEveryTickHandler();
-   }
+    }
 
-   function onGameEntityDestroy() {
-        if(!(entity instanceof alt.Player)) return;
+    function onGameEntityDestroy(entity: alt.Entity) {
+        if (!(entity instanceof alt.Player)) return;
         updateEveryTickHandler();
-   }
-        
-   function updateEveryTickHandler() {
-       if (alt.Player.streamedIn.length > 0 && !everyTickHandler) {
-           everyTickHandler = alt.everyTick(processPlayerFilters);
-       } else if (alt.Player.streamedIn.length === 0 && everyTickHandler) {
-           alt.clearEveryTick(everyTickHandler);
-           everyTickHandler = null;
-       }
-   }
+    }
 
-   function processPlayerFilters() {
+    function updateEveryTickHandler() {
+        if (alt.Player.streamedIn.length > 0 && !everyTickHandler) {
+            everyTickHandler = alt.everyTick(processPlayerFilters);
+        } else if (alt.Player.streamedIn.length === 0 && everyTickHandler) {
+            alt.clearEveryTick(everyTickHandler);
+            everyTickHandler = null;
+        }
+    }
+
+    function processPlayerFilters() {
         alt.Player.streamedIn.forEach((entity) => {
             const localPlayerRoomKey = game.getRoomKeyFromEntity(alt.Player.local.scriptID);
             const streamedPlayerRoomKey = game.getRoomKeyFromEntity(entity.scriptID);
 
             if (localPlayerRoomKey !== streamedPlayerRoomKey) {
                 entity.filter = muffleFilter;
-                continue;
+                return;
             }
             entity.filter = null;
         });
-   }
+    }
+
+    return {
+        onGameEntityCreate,
+        onGameEntityDestroy,
+    };
 }
 
-const muffleFilter = new alt.AudioFilter('muffleFilter');
-carExteriorFilter.addBqfEffect(0, 1000, -6, 1, 0, 0, 1);
-carExteriorFilter.addBqfEffect(2, 100, 6, 1, 0, 0, 2);
-carExteriorFilter.addDistortionEffect(0.2, -0.8, -0.2, 0, 0.7, 3);
-carExteriorFilter.addVolumeEffect(0.6, 4);
+const voiceClient = useVoiceClient();
 
-alt.on('gameEntityCreate', onGameEntityCreate);
-alt.on('gameEntityDestroy', onGameEntityDestroy);
+const muffleFilter = new alt.AudioFilter('muffleFilter');
+muffleFilter.addBqfEffect(0, 1000, -6, 1, 0, 0, 1);
+muffleFilter.addBqfEffect(2, 100, 6, 1, 0, 0, 2);
+muffleFilter.addDistortionEffect(0.2, -0.8, -0.2, 0, 0.7, 3);
+muffleFilter.addVolumeEffect(0.6, 4);
+
+alt.on('gameEntityCreate', voiceClient.onGameEntityCreate);
+alt.on('gameEntityDestroy', voiceClient.onGameEntityDestroy);
